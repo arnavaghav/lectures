@@ -1,147 +1,193 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Bar chart example</title>
-        <script src="https://d3js.org/d3.v5.min.js"></script>
-        <style>
-            svg {
-                width: 600px;
-                height: 400px;
-                border:1px solid gray;  
-            }
-            /* You can set SVG stylings using CSS like this! */
-            rect {
-                fill:lightcoral;
-            }
-            /* Axis labels by default are serif font. 
-               Try commenting this out and see how it updates. */
-            .axis-label {
-                font-size:1.2em;
-                font-family:sans-serif;
-                fill:gray;
-            }
-            .title {
-                font-family:sans-serif;
-                font-size:1.6em;
-                fill:gray;
-            }
-           
-            .tick line {
-                stroke: lightgray;
-            }
-            .tick text {
-                fill: gray;
-            } 
-        </style>
-    </head>
-    <body>
-         <!-- 1. Our SVG that is used to draw the bar chart -->
-        <svg id="barchartSvg" ></svg>
-    </body>
-    <script>
-        // 2. Get a reference to the SVG and get its dimensions
-        const svg = d3.select('#barchartSvg');
-        const width = +svg.style('width').replace('px','');
-        const height = +svg.style('height').replace('px','');
+<meta charset="utf-8">
 
-        // 3. margin is used for adding "padding" around the bar chart
-        const margin = { top:40, bottom: 90, right: 20, left: 80 };
-        const innerWidth = width - margin.left - margin.right;
-        const innerHeight = height - margin.top - margin.bottom;
-        
-        // 4. d3.csv does a GET request to the given URL (in this case a local file)
-        // Once it's loaded into the "data" object, we use an arrow function
-        // to run the code that creates the chart.
-        d3.csv('population_by_country_2020.csv').then(data => {
-            // console.log(data);
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
 
-            // 5. This is an example of how to sort JS arrays with a comparator function.
-            // Try swapping the "a" and "b" in the compparison statement.
-            data.sort(function(a,b) {
-                return +b["Population (2020)"] - +a["Population (2020)"];
-            });
+<title>Homework #2: D3 Lollipop</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+  
+<body>
+        <div class="container">
+            <h1 class="text-center">Homework #2: D3 Lollipop</h1>
+            <h3 class="text-center">Female vs Male employment rate in various countries</h3>
+            <div class="row">
+                <div class="col-1">Country: </div>
+                <div class="col-3">
+                    <!-- add your select here-->
+                    <select name="countries" id="countries" style="max-width:100%;" onchange="tocall();">
+                        <option value="United States">United States</option>
+                        <option value="India">India</option>
+                        <option value="Germany">Germany</option>
+                        <option value="Afghanistan">Afghanistan</option>
+                        <option value="Australia">Australia</option>
+                    </select>
+                </div>        
+                </div>
+         </div>
+  </body>
+    
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
 
-            // 6. Only get the first 10 items in the array.
-            data = data.slice(0,10);
 
-            // 7. This bit of data wrangling makes it easier to reference the data.
-            // You can use your browser's dev tools to see the items and their attributes
-            data.forEach(d => {
-                d.population = +d["Population (2020)"];
-                d.country = d["Country (or dependency)"];
-            });
+<script>
 
-            // 8. Create the scales for the bar chart.
-            // The xScale is a "linear" scale and the yScale is a "band" scale.
-            // Here's some tutorials on these scale types:
-            // https://observablehq.com/@d3/d3-scalelinear
-            // https://observablehq.com/@d3/d3-scaleband
-            const xScale = d3.scaleLinear()
-                                .domain([0, d3.max(data, function(d) {  return d.population; })]) // data space
-                                .range([0,innerWidth]); // pixel space
-            const yScale = d3.scaleBand()
-                                .domain(data.map(function(d) { return d.country;}))
-                                .range([0,innerHeight])
-                                .padding(0.1);
+var clear = new Boolean(false);
 
-            // 9. Append a 'g' element that's offset by the top and left margins.
-            // The commented out line is an example of how to do this using Javascript 'string literals'.
-            const g = svg.append('g')
-                        // .attr('transform', `translate(${margin.left}, ${margin.top})`);
-                        .attr('transform', 'translate('+margin.left+', '+margin.top+')');
+function tocall(){
+  d3.select("svg").remove();
 
-            // // 10. This is what adds the rectangles in our bar chart.
-            var barchart = g.selectAll('rect')
-                            .data(data)
-                            .enter()
-                            .append('rect')
-                            .attr('y', d => yScale(d.country))
-                            .attr('height',yScale.bandwidth())
-                            .attr('width', function(d) {
-                                return  xScale(d.population);
-                            });
+  //d3.select("#my_dataviz").remove("svg");
 
-            // 11. Add the x-axis and y-axis with additional styling
-            const yAxis = d3.axisLeft(yScale);
-            g.append('g').call(yAxis)
-                         .selectAll('.domain, .tick line').remove(); // remove the y-axis line and tick marks using this 'selectAll' command
-                       
-            const xAxisTickFormat = function(d) { 
-                    // You can use this link to look at d3.format options: 
-                    // http://bl.ocks.org/zanarmstrong/05c1e95bf7aa16c4768e
-                    return d3.format('.3s')(d).replace('G','B') 
-            }
-            const xAxis = d3.axisBottom(xScale)
-                            // make the x-axis labels nicer using a custom tick format function
-                            .tickFormat(xAxisTickFormat)
-                            // extend the x-axis tick marks backwards to the top of the chart
-                            .tickSize(-innerHeight);                
-            var gXAxis = g.append('g').call(xAxis);
-        //     // remove the x-axis line 
-            gXAxis.selectAll('.domain').remove();                   
-            gXAxis.attr('transform',`translate(0,${innerHeight})`)
-                            .selectAll("text")                   // If you want to rotate the axis text,
-                                .style("text-anchor", "end")     // select it with the selectAll call and
-                                .attr("dx", "-10px")             // and slightly shift it (using dx, dy)
-                                .attr("dy", "0px")               // and then rotate it.
-                                .attr("transform", "rotate(-45)" );
-            
-            
+  var e = document.getElementById("countries");
+  var strUser = e.options[e.selectedIndex].text;
+  console.log(strUser)
 
-        //     // 12. Label the x-axis and add a title
-        //     // Note that we're using CSS to help style both these 
-        //     // components and the x-axis tick marks.
-            g.append('text')
+  // set the dimensions and margins of the graph
+  var margin = {top: 10, right: 30, bottom: 50, left:150},
+      width = 1000 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+  var counter = 0;
+
+  // append the svg object to the body of the page
+  var svg = d3.select("#my_dataviz")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+  // Add X axis
+  var x = d3.scaleLinear()
+    .domain([1990, 2023])
+    .range([ 0, width]);
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end");
+
+
+
+  
+  
+  // Axis labels
+  svg.append("text")
+                .attr('class','axis-label')
+                .attr('transform','rotate(-90)')
+                .attr('y','-100px')
+                .attr('x', -innerWidth/4)
+                .attr('text-anchor','middle')
+                .text('Employment Rate');
+
+  svg.append("text")
                 .attr('class','axis-label')
                 .attr('text-anchor','middle')
-                .attr('x',innerWidth/2)
-                .attr('y',innerHeight+70)
-                .text('Population')    
-            g.append('text')
-                .attr('class','title')
-                .attr('y',-10)
-                .text('The top 10 most populous countries');
-                
-        });
-    </script>
-</html>
+                .attr('x','400px')
+                .attr('y','590px')
+                .text('Year');   
+
+  svg.append("circle").attr("cx",'580px').attr("cy",'3px').attr("r", 6).style("fill", "Blue")
+  svg.append("circle").attr("cx",'580px').attr("cy",'30px').attr("r", 6).style("fill", "Magenta")
+  svg.append("text").attr("x", '600px').attr("y", '8px').text("Male Employement Rate").style("font-size", "15px")
+  svg.append("text").attr("x", '600px').attr("y", '35px').text("Female Employement Rate").style("font-size", "15px")
+  // Parse the Data
+  d3.csv("males_data.csv", function(data) {
+
+    var country_values = data.map(function(d) { return d[strUser]});
+    var years = data.map(function(d) {return Number(d.Year)})
+    const nuevo = country_values.map((i) => Number(i));
+    
+    var m_max = d3.max(nuevo);
+    var max = m_max;
+
+    var temp = d3.csv("females_data.csv", function(data) {
+      var country_values = data.map(function(d) { return d[strUser]});
+      const nuevo = country_values.map((i) => Number(i));
+
+      var f_max = d3.max(nuevo);
+
+      if (f_max > max){
+        max = f_max;
+      }
+  
+      console.log(m_max + "  " + f_max + "  " + max);
+    }) 
+
+    console.log(max + "  " + temp);
+
+    // Y axis
+    var y = d3.scaleLinear()
+      .range([ 60, height ])
+      .domain([max, 0.00 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+
+    for(let i = 0; i < years.length; i++){
+      // Lines
+      svg.selectAll("myline")
+        .data(data)
+        .enter()
+        .append("line")
+          .attr("x1", x(years[i])) 
+          .attr("y1", y(0))
+          .attr("x2", x(years[i]))
+          .attr("y2", y(nuevo[i]))
+          .attr("stroke", "blue")
+          .attr("stroke-width", 1.5)
+
+      // Circles
+      svg.selectAll("mycircle")
+        .data(data)
+        .enter()
+        .append("circle")
+          .attr("cx", x(years[i]))
+          .attr("cy", y(nuevo[i]))
+          .attr("r", "5")
+          .style("fill", "blue")
+          .attr("stroke", "blue")
+      counter = 0;
+    }
+
+  d3.csv("females_data.csv", function(data) {
+
+    var country_values = data.map(function(d) { return d[strUser]});
+    var years = data.map(function(d) {return Number(d.Year)})
+    const nuevo = country_values.map((i) => Number(i));
+    
+  
+    for(let i = 0; i < years.length; i++){
+      // Lines
+      svg.selectAll("myline")
+        .data(data)
+        .enter()
+        .append("line")
+          .attr("x1", x(years[i]) + 7.5) 
+          .attr("y1", y(0))
+          .attr("x2", x(years[i]) + 7.5)
+          .attr("y2", y(nuevo[i]))
+          .attr("stroke", "magenta")
+          .attr("stroke-width", 1.5)
+
+      // Circles
+      svg.selectAll("mycircle")
+        .data(data)
+        .enter()
+        .append("circle")
+          .attr("cx", x(years[i]) + 7.5)
+          .attr("cy", y(nuevo[i]))
+          .attr("r", "5")
+          .style("fill", "magenta")
+          .attr("stroke", "magenta")
+      counter = 0;
+    }
+  })
+  
+
+})}
+
+</script>
